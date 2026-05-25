@@ -1,0 +1,104 @@
+:root {
+  --text: #1d1d1f;
+  --text-secondary: #6e6e73;
+  --bg: #ffffff;
+  --bg-secondary: #f5f5f7;
+  --blue: #007aff;
+  --purple: #af52de;
+  --red: #ff3b30;
+  --max-width: 720px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text: #f5f5f7;
+    --text-secondary: #98989d;
+    --bg: #000000;
+    --bg-secondary: #1c1c1e;
+  }
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 17px;
+  line-height: 1.6;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+main {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 64px 24px 96px;
+}
+
+header {
+  margin-bottom: 48px;
+}
+
+header .brand {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+h1 {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Rounded", "SF Pro Text", sans-serif;
+  font-size: 40px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin: 8px 0 16px;
+}
+
+h2 {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin-top: 40px;
+  margin-bottom: 12px;
+}
+
+p { margin: 12px 0; }
+
+p.lead {
+  font-size: 19px;
+  color: var(--text-secondary);
+  margin-bottom: 32px;
+}
+
+a { color: var(--blue); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+ul, ol { padding-left: 24px; margin: 12px 0; }
+li { margin: 6px 0; }
+
+code, pre {
+  font-family: ui-monospace, "SF Mono", Menlo, Monaco, monospace;
+  font-size: 0.92em;
+  background: var(--bg-secondary);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+nav.footer {
+  margin-top: 64px;
+  padding-top: 32px;
+  border-top: 1px solid var(--bg-secondary);
+  font-size: 14px;
+  color: var(--text-secondary);
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+nav.footer a { color: var(--text-secondary); }
+
+.heart { color: var(--red); }
