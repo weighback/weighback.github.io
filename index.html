@@ -292,9 +292,10 @@
     /* Disable the iPad-front layout shift — only one device shown. */
     .hero.is-ipad-front .hero-text { transform: none; opacity: 1; pointer-events: auto; }
     .hero.is-ipad-front .device-area { transform: none; }
-    /* No swap target = no swap affordance. */
+    /* No swap target = no swap affordance / no DOF / no hover state. */
     .device { cursor: default; }
-    .device.back {
+    .device.back,
+    .device.back:hover {
       filter: none;
       box-shadow: 0 30px 60px -25px rgba(0,0,0,0.35), 0 1px 0 rgba(255,255,255,0.04) inset;
     }
