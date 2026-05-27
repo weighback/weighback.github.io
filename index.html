@@ -329,6 +329,9 @@
       left: 0;
       top: 0;
       transform: none;
+      /* On desktop, padding 7% of stage_W = 2% of iPad_W (iPad is 350% of stage).
+         On tablet, stage_W == iPad_W, so use 2% directly. */
+      padding: 2%;
     }
   }
 </style>
