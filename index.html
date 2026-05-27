@@ -257,14 +257,17 @@
   .doesnt p { color: var(--ink-2); margin: 0; font-size: 15px; max-width: 56ch; }
 
   .cta { margin-top: clamp(56px, 8vw, 80px); display:flex; align-items:center; gap: 20px; flex-wrap: wrap; }
-  .cta a {
-    display:inline-flex; align-items:center; gap:8px;
+  .cta .btn-disabled {
+    display: inline-flex; align-items: center; gap: 8px;
     padding: 13px 20px; border-radius: 999px;
-    background: var(--ink); color: var(--paper);
-    text-decoration:none; font-weight:500; font-size: 14px;
-    transition: background .25s, color .25s;
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--ink-2);
+    font-weight: 500; font-size: 14px;
+    letter-spacing: 0.01em;
+    cursor: not-allowed;
+    user-select: none;
   }
-  .cta a:hover { background: var(--accent); color: #fff; }
   .cta small { color: var(--ink-2); font-size: 13px; }
 
   footer.bot {
@@ -406,7 +409,7 @@
     </section>
 
     <div class="cta">
-      <a href="#">Download on the App Store →</a>
+      <span class="btn-disabled" aria-disabled="true">Coming soon&hellip;</span>
       <small>iPhone &amp; iPad · iOS 17 or later · Free</small>
     </div>
 
