@@ -1,43 +1,518 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Weighback — Your weight, in context.</title>
-  <meta name="description" content="Weighback reads your weight history from Apple Health and surfaces the moments that matter — milestones, peaks, and the last time you weighed what you weigh today.">
-  <link rel="stylesheet" href="style.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Weighback — Your journey, retraced.</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", system-ui, sans-serif;
+    --paper: #f3f4f6;
+    --ink:   #0f172a;
+    --ink-2: #64748b;
+    --line:  rgba(15,23,42,0.10);
+    --accent:#2563eb;
+    --device:#0a0a0b;
+  }
+  body[data-mode="dark"] {
+    --paper: #0b1220;
+    --ink:   #e2e8f0;
+    --ink-2: #8896ab;
+    --line:  rgba(255,255,255,0.10);
+    --accent:#60a5fa;
+    --device:#000000;
+  }
+  @media (prefers-color-scheme: dark) {
+    body[data-mode="system"] {
+      --paper: #0b1220;
+      --ink:   #e2e8f0;
+      --ink-2: #8896ab;
+      --line:  rgba(255,255,255,0.10);
+      --accent:#60a5fa;
+      --device:#000000;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin:0; padding:0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px; line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    transition: background .35s, color .35s;
+    overflow-x: hidden;
+  }
+
+  .wrap { max-width: 980px; margin: 0 auto; padding: 32px clamp(20px, 4vw, 40px) 80px; overflow: visible; }
+
+  nav.top { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap: 12px; }
+  .word { font-weight: 600; letter-spacing: -0.01em; font-size: 16px; }
+  .word sup { font-size: 9px; vertical-align: super; opacity: 0.7; margin-left: 1px; }
+  .top-right { display:flex; align-items:center; gap: 20px; }
+  .top-right a { color: var(--ink-2); text-decoration:none; font-size: 14px; }
+  .top-right a:hover { color: var(--accent); }
+  .mode-switch {
+    display: inline-flex; align-items: center; gap: 2px;
+    padding: 3px;
+    border: 1px solid var(--line); border-radius: 999px;
+  }
+  .mode-switch button {
+    appearance: none; border: 0; padding: 0; cursor: pointer;
+    background: transparent;
+    width: 26px; height: 22px;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: var(--ink-2);
+    border-radius: 999px;
+    transition: background .2s, color .2s;
+  }
+  .mode-switch button:hover { color: var(--ink); }
+  .mode-switch button[aria-pressed="true"] {
+    background: var(--ink); color: var(--paper);
+  }
+  .mode-switch svg { width: 13px; height: 13px; }
+
+  .hero {
+    margin-top: clamp(56px, 9vw, 96px);
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: clamp(48px, 7vw, 80px);
+    align-items: center;
+    justify-items: center;
+  }
+  .hero-text { width: 100%; transition: transform .65s cubic-bezier(.22,.7,.2,1), opacity .35s ease; }
+  .device-area { transition: transform .65s cubic-bezier(.22,.7,.2,1); }
+
+  /* When iPad is brought front: text slides off left, devices shift left
+     so the iPad lands centered in the viewport. */
+  .hero.is-ipad-front .hero-text {
+    transform: translateX(-120%);
+    opacity: 0;
+    pointer-events: none;
+  }
+  .hero.is-ipad-front .device-area {
+    transform: translateX(-38vw);
+  }
+  .hero h1 {
+    font-weight: 600;
+    font-size: clamp(36px, 5.2vw, 64px);
+    letter-spacing: -0.03em;
+    line-height: 1.04;
+    margin: 0;
+    max-width: 14ch;
+  }
+  .hero h1 .accent { color: var(--accent); }
+  .hero .sub { color: var(--ink-2); font-size: 17px; max-width: 44ch; margin: 14px 0 0; }
+  .hero .sub.tag {
+    margin-top: 14px;
+    color: var(--ink);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    font-size: 18px;
+  }
+  .hero .tagline {
+    display: grid;
+    grid-template-columns: auto auto auto;
+    column-gap: 0; row-gap: 0.12em;
+    width: max-content;
+  }
+  .hero .tagline .ac { color: var(--accent); }
+
+  /* ---------- Device stage (iPad landscape behind iPhone portrait) ---------- */
+  .device-area { display: flex; flex-direction: column; align-items: flex-start; }
+  .device-stage {
+    position: relative;
+    width: clamp(220px, 24vw, 290px);
+    aspect-ratio: 1290 / 2796;
+    overflow: visible;
+  }
+  .device {
+    position: absolute;
+    background: var(--device);
+    cursor: pointer;
+    transition: filter .35s, box-shadow .35s, z-index 0s linear .25s, transform .55s cubic-bezier(.22,.7,.2,1);
+  }
+  /* iPhone — outer corner is a true circle: 14% × stage_W = 6.46% × stage_H
+     (stage_H/stage_W = 2796/1290 = 2.167). Padding uniform so bezel is even. */
+  .device.iphone {
+    top: 0;
+    left: -18%;
+    width: 100%;
+    height: 100%;
+    border-radius: 14% / 6.46%;
+    padding: 3%;
+  }
+  /* iPad to-scale landscape. iPad-width/iPad-height = 3.502/2.681 = 1.306.
+     Outer corner is a circle in pixel space: x% = 5.0, y% = 5.0 × 1.306 = 6.53.
+     Tighter than the display radius — matches the iPad's exterior chamfer.
+     Padding 7% of stage_W = 2% of iPad's own width — matches the real
+     iPad Pro 13" M5 bezel (~5.75mm of 281.5mm width).
+     Outline = thin aluminum case edge visible face-on. */
+  .device.ipad {
+    width: 350.2%;
+    height: 123.7%;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    border-radius: 5% / 6.53%;
+    padding: 7%;
+    outline: 1.5px solid #a8acaf;
+    outline-offset: 0;
+  }
+  .device .screen {
+    position: relative; width:100%; height:100%; overflow:hidden;
+    background: var(--paper);
+    transition: background .35s;
+  }
+  /* Screen radii: same absolute pixel radius as the device, minus the
+     bezel thickness. Both corners stay perfectly concentric circles, so
+     the bezel thickness is constant all the way around.
+     iPhone: R = 0.14W - 0.03W = 0.11W. screen_W = 0.94W, screen_H = 2.107W.
+       x = 0.11 / 0.94  = 11.70%   y = 0.11 / 2.107 = 5.22%
+     iPad (5% outer, 7% stage padding = 2% of iPad width):
+       R_outer = 0.05 × 3.502 = 0.175W'.  R_inner = 0.175 - 0.07 = 0.105W'.
+       screen_W = 3.362W', screen_H = 2.541W'
+       x = 0.105 / 3.362 = 3.12%   y = 0.105 / 2.541 = 4.13% */
+  .device.iphone .screen { border-radius: 11.7% / 5.22%; }
+  .device.ipad   .screen { border-radius: 3.12% / 4.13%; }
+
+  /* Media layers:
+     .poster   = always-visible static base (first screenshot)
+     .m-video  = autoplay loop, FRONT device only, hidden if fallback / not ready
+     .m-img    = fallback carousel, FRONT device only, hidden in normal video mode */
+  .poster, .m-video, .m-img {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    object-fit: cover;
+  }
+  .poster  { z-index: 1; }
+  .m-video { z-index: 2; background: transparent; }
+  .m-img   { z-index: 3; opacity: 0; transition: opacity 1s ease; }
+  .m-img.on { opacity: 1; }
+
+  /* Back device shows ONLY the poster — no video, no carousel cycling. */
+  .device.back .m-video { display: none; }
+  .device.back .m-img   { display: none; }
+
+  /* Fallback mode (reduced motion / slow conn): hide all videos; carousel cycles on front. */
+  body.use-fallback .m-video { display: none; }
+  body.use-fallback .device.back .m-img { display: none; }
+
+  /* Normal mode (video plays): hide carousel imgs everywhere — poster + video do the work. */
+  body.media-ready:not(.use-fallback) .m-img { display: none; }
+
+  /* Pre-probe state (haven't decided fallback vs video yet): show poster only. */
+  body:not(.media-ready) .m-video { display: none; }
+  body:not(.media-ready) .m-img   { display: none; }
+
+  .device.front {
+    z-index: 2;
+    box-shadow: 0 30px 60px -25px rgba(0,0,0,0.35), 0 1px 0 rgba(255,255,255,0.04) inset;
+    transition-delay: 0s;
+    filter: none;
+  }
+  /* Depth-of-field on the rear device — blur + slight dim. */
+  .device.back {
+    z-index: 1;
+    filter: brightness(0.88) saturate(0.92) blur(4px);
+    box-shadow: 0 20px 40px -28px rgba(0,0,0,0.45);
+  }
+  .device.back:hover { filter: brightness(0.96) saturate(0.98) blur(2px); }
+  body[data-mode="dark"] .device.front { box-shadow: 0 30px 60px -25px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.06) inset; }
+  body[data-mode="dark"] .device.back  { box-shadow: 0 20px 40px -28px rgba(0,0,0,0.8); }
+
+  /* Dots — shown only in fallback mode (video makes them redundant) */
+  .dots {
+    margin-top: clamp(78px, 7vw, 100px);
+    display:flex; gap:8px;
+    width: 100%;
+    justify-content: center;
+    position: relative;
+    z-index: 5;
+  }
+  body:not(.use-fallback).media-ready .dots { display: none; }
+  .dots button {
+    appearance:none; border:0; padding:0;
+    width:7px; height:7px; border-radius:50%;
+    background: color-mix(in srgb, var(--ink) 22%, transparent);
+    cursor:pointer; transition: background .25s, transform .25s;
+  }
+  .dots button.on { background: var(--accent); transform: scale(1.35); }
+  .dots button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+  .index { margin-top: clamp(80px, 12vw, 128px); border-top: 1px solid var(--line); }
+  .index .row {
+    display: grid; grid-template-columns: 56px 1fr 1fr; gap: 24px;
+    align-items: baseline; padding: 22px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .index .num { font-variant-numeric: tabular-nums; color: var(--ink-2); font-size: 13px; letter-spacing: 0.06em; }
+  .index .name { font-weight: 600; font-size: 18px; letter-spacing: -0.01em; }
+  .index .desc { color: var(--ink-2); font-size: 15px; }
+
+  .doesnt { margin-top: clamp(80px, 12vw, 120px); max-width: 640px; }
+  .doesnt h2 { font-weight: 600; font-size: clamp(20px, 2vw, 26px); letter-spacing: -0.015em; margin: 0 0 14px; }
+  .doesnt h2 .accent { color: var(--accent); }
+  .doesnt p { color: var(--ink-2); margin: 0; font-size: 15px; max-width: 56ch; }
+
+  .cta { margin-top: clamp(56px, 8vw, 80px); display:flex; align-items:center; gap: 20px; flex-wrap: wrap; }
+  .cta a {
+    display:inline-flex; align-items:center; gap:8px;
+    padding: 13px 20px; border-radius: 999px;
+    background: var(--ink); color: var(--paper);
+    text-decoration:none; font-weight:500; font-size: 14px;
+    transition: background .25s, color .25s;
+  }
+  .cta a:hover { background: var(--accent); color: #fff; }
+  .cta small { color: var(--ink-2); font-size: 13px; }
+
+  footer.bot {
+    margin-top: clamp(96px, 12vw, 128px);
+    padding-top: 22px;
+    border-top: 1px solid var(--line);
+    display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap: 12px;
+    color: var(--ink-2); font-size: 12px;
+  }
+  footer.bot a { color: var(--ink-2); text-decoration:none; margin-right: 20px; }
+  footer.bot a:hover { color: var(--accent); }
+
+  @media (min-width: 720px) {
+    .hero { grid-template-columns: 1.05fr 1fr; justify-items: start; }
+  }
+</style>
 </head>
-<body>
-  <main>
-    <header>
-      <div class="brand">Weighback&trade;</div>
-      <h1>Your weight, in context.</h1>
-      <p class="lead">A quiet companion for the weight history Apple Health already has. Weighback finds the patterns no scale alone can show — milestones, peaks, and the last time you weighed what you weigh today.</p>
-    </header>
+<body data-mode="light">
+  <div class="wrap">
 
-    <h2>What it does</h2>
-    <ul>
-      <li><strong>Weighback.</strong> Tells you the last time you weighed your current weight. Sometimes the number on the scale feels familiar — Weighback tells you exactly when you last saw it.</li>
-      <li><strong>Milestones.</strong> A descending chain of every meaningful low you've crossed, with the dates you reached them.</li>
-      <li><strong>All-time low and peak</strong>, always one tap away.</li>
-      <li><strong>A chart that zooms.</strong> One month to full history, with the same kind of momentum panning you expect from Apple's own apps.</li>
-    </ul>
-
-    <h2>What it doesn't do</h2>
-    <ul>
-      <li><strong>Send your data anywhere.</strong> Weighback runs entirely on your iPhone. Your weight history stays where it already is — in Apple Health, on your device.</li>
-      <li><strong>Ask you to log in.</strong> There is no account. There is no server.</li>
-      <li><strong>Charge to unlock features.</strong> The app is free. A small in-app tip supports development; the feature set is the same either way.</li>
-    </ul>
-
-    <h2>Get it</h2>
-    <p>Weighback is available on the App Store for iPhone and iPad, running iOS 17 or later.</p>
-
-    <nav class="footer">
-      <a href="privacy.html">Privacy</a>
-      <a href="support.html">Support</a>
-      <span>&copy; 2026 Brian R. Jackson</span>
+    <nav class="top">
+      <div class="word">weighback<sup>™</sup></div>
+      <div class="top-right">
+        <div class="mode-switch" role="radiogroup" aria-label="Color theme">
+          <button type="button" data-mode="light" aria-label="Light" title="Light">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="3"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.4 1.4M11.55 11.55l1.4 1.4M3.05 12.95l1.4-1.4M11.55 4.45l1.4-1.4"/></svg>
+          </button>
+          <button type="button" data-mode="system" aria-label="System" title="System">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="9" rx="1.2"/><path d="M5.5 14h5M8 11.5v2.5"/></svg>
+          </button>
+          <button type="button" data-mode="dark" aria-label="Dark" title="Dark">
+            <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8.5 1.5A6.5 6.5 0 0 0 14.5 11 5.5 5.5 0 0 1 8.5 1.5z"/></svg>
+          </button>
+        </div>
+        <a href="#">Privacy</a>
+        <a href="#">Support</a>
+      </div>
     </nav>
-  </main>
+
+    <section class="hero">
+      <div class="hero-text">
+        <h1>Your journey, <span class="accent">retraced.</span></h1>
+        <p class="sub">A quiet companion for the journey you are already tracking in Apple Health — use your journey up as a set of goals on your &ldquo;weigh&rdquo; back down.</p>
+        <div class="sub tag tagline">
+          <span></span><span class="ac">step&nbsp;</span><span>back in time</span>
+          <span>as you&nbsp;</span><span class="ac">step&nbsp;</span><span>on the scale</span>
+        </div>
+      </div>
+
+      <div class="device-area">
+        <div class="device-stage">
+          <div class="device ipad back" data-dev="ipad" data-orient="landscape">
+            <div class="screen">
+              <img class="poster" data-img="01-main-all.png" alt="">
+              <video class="m-video" muted loop playsinline preload="none" aria-hidden="true"></video>
+              <img class="m-img on" data-img="01-main-all.png" alt="">
+              <img class="m-img" data-img="02-main-1Y.png" alt="">
+              <img class="m-img" data-img="03-fullscreen.png" alt="">
+              <img class="m-img" data-img="05-goals.png" alt="">
+            </div>
+          </div>
+          <div class="device iphone front" data-dev="iphone" data-orient="portrait">
+            <div class="screen">
+              <img class="poster" data-img="01-main-all.png" alt="">
+              <video class="m-video" autoplay muted loop playsinline preload="metadata" aria-hidden="true"></video>
+              <img class="m-img on" data-img="01-main-all.png" alt="">
+              <img class="m-img" data-img="02-main-1Y.png" alt="">
+              <img class="m-img" data-img="03-fullscreen.png" alt="">
+              <img class="m-img" data-img="05-goals.png" alt="">
+            </div>
+          </div>
+        </div>
+        <div class="dots" role="tablist" aria-label="Screenshots">
+          <button class="on" data-i="0" aria-label="Main view"></button>
+          <button data-i="1" aria-label="One-year zoom"></button>
+          <button data-i="2" aria-label="Fullscreen chart"></button>
+          <button data-i="3" aria-label="Goals"></button>
+        </div>
+      </div>
+    </section>
+
+    <section class="index">
+      <div class="row"><span class="num">01</span><span class="name">Weighback&trade;</span><span class="desc">The last date you previously weighed what you weigh today.</span></div>
+      <div class="row"><span class="num">02</span><span class="name">Weighback Goals</span><span class="desc">A progressing chain of previous lows as your next goals, with dates.</span></div>
+      <div class="row"><span class="num">03</span><span class="name">All-time</span><span class="desc">Lifetime low and peak, always one tap away.</span></div>
+      <div class="row"><span class="num">04</span><span class="name">Chart that zooms</span><span class="desc">One month to full history with momentum panning.</span></div>
+    </section>
+
+    <section class="doesnt">
+      <h2>No accounts. No servers. <span class="accent">Your data, your device.</span></h2>
+      <p>Weighback runs entirely on your iPhone or iPad. Your weight history stays in Apple Health, on your device. There is no log-in, no telemetry, no third-party SDK.</p>
+    </section>
+
+    <div class="cta">
+      <a href="#">Download on the App Store →</a>
+      <small>iPhone &amp; iPad · iOS 17 or later · Free</small>
+    </div>
+
+    <footer class="bot">
+      <div>
+        <a href="#">Privacy</a>
+        <a href="#">Support</a>
+        <a href="#">Contact</a>
+      </div>
+      <span>© 2026 Brian R. Jackson</span>
+    </footer>
+
+  </div>
+
+  <script>
+    const body = document.body;
+    const switchBtns = document.querySelectorAll('.mode-switch button');
+    function effectiveMode() {
+      const m = body.dataset.mode;
+      if (m === 'light' || m === 'dark') return m;
+      return matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+
+    // ---- Fallback detection -------------------------------------------------
+    function shouldUseFallback() {
+      if (matchMedia('(prefers-reduced-motion: reduce)').matches) return true;
+      const c = navigator.connection;
+      if (c) {
+        if (c.saveData) return true;
+        if (['slow-2g', '2g'].includes(c.effectiveType)) return true;
+      }
+      return false;
+    }
+    if (shouldUseFallback()) body.classList.add('use-fallback');
+    if (navigator.connection) {
+      navigator.connection.addEventListener('change', () => {
+        body.classList.toggle('use-fallback', shouldUseFallback());
+        refreshMedia();
+      });
+    }
+
+    // ---- Source resolution --------------------------------------------------
+    function keyFor(dev) {
+      return `${dev.dataset.dev}-${effectiveMode()}-${dev.dataset.orient}`;
+    }
+
+    const ASSET_VERSION = '2026-05-27a';
+    function refreshMedia() {
+      const useFallback = body.classList.contains('use-fallback');
+      const v = `?v=${ASSET_VERSION}`;
+      document.querySelectorAll('.device').forEach(dev => {
+        const key = keyFor(dev);
+        const isFront = dev.classList.contains('front');
+        const posterPath = `screens/${key}/01-main-all.png${v}`;
+        const desiredSrc = `videos/${key}.mp4${v}`;
+        // Static poster — always present, theme-matched
+        const poster = dev.querySelector('.poster');
+        if (poster) poster.src = posterPath;
+        // Carousel imgs — theme-matched (only shown in fallback mode, only on front device)
+        dev.querySelectorAll('.m-img').forEach(img => {
+          img.src = `screens/${key}/${img.dataset.img}${v}`;
+        });
+        // Video — only the FRONT device loads/plays; back device is static.
+        const video = dev.querySelector('.m-video');
+        if (!video) return;
+        video.poster = posterPath;
+        if (isFront && !useFallback) {
+          if (video.dataset.src !== desiredSrc) {
+            video.dataset.src = desiredSrc;
+            video.src = desiredSrc;
+            video.load();
+          }
+          video.play().catch(() => {});
+        } else {
+          video.pause();
+        }
+      });
+    }
+
+    // ---- Probe whether videos exist; if not, force fallback ----------------
+    function probeVideosAndActivate() {
+      // Try the iPhone-light-portrait video — if it 404s, fall back.
+      const probe = document.createElement('video');
+      probe.preload = 'metadata';
+      probe.muted = true;
+      probe.src = 'videos/iphone-light-portrait.mp4';
+      let settled = false;
+      const decide = (hasVideo) => {
+        if (settled) return; settled = true;
+        if (!hasVideo) body.classList.add('use-fallback');
+        body.classList.add('media-ready');
+        refreshMedia();
+      };
+      probe.addEventListener('loadedmetadata', () => decide(true), { once: true });
+      probe.addEventListener('error', () => decide(false), { once: true });
+      setTimeout(() => decide(false), 4000); // hard cap
+    }
+
+    // ---- Carousel (fallback only; cycles FRONT device's .m-img stack) ------
+    const dots = document.querySelectorAll('.dots button');
+    let i = 0, timer;
+    const stop  = () => { if (timer) { clearInterval(timer); timer = null; } };
+    const go = (n) => {
+      const front = document.querySelector('.device.front');
+      if (!front) return;
+      const imgs = front.querySelectorAll('.m-img');
+      imgs.forEach(img => img.classList.remove('on'));
+      dots[i]?.classList.remove('on');
+      i = (n + imgs.length) % imgs.length;
+      imgs[i]?.classList.add('on');
+      dots[i]?.classList.add('on');
+    };
+    const start = () => { stop(); if (body.classList.contains('use-fallback')) timer = setInterval(() => go(i + 1), 4200); };
+    dots.forEach(d => d.addEventListener('click', () => { go(parseInt(d.dataset.i, 10)); start(); }));
+    start();
+
+    // ---- iPad/iPhone swap (click anywhere on a device toggles) -------------
+    const stage = document.querySelector('.device-stage');
+    const hero = document.querySelector('.hero');
+    stage.addEventListener('click', (e) => {
+      const clicked = e.target.closest('.device');
+      if (!clicked) return;
+      stage.querySelectorAll('.device').forEach(d => {
+        d.classList.toggle('front');
+        d.classList.toggle('back');
+      });
+      // Toggle the layout shift — when iPad is the new front, slide text off and center the iPad.
+      const ipadFront = stage.querySelector('.device.ipad')?.classList.contains('front');
+      hero.classList.toggle('is-ipad-front', !!ipadFront);
+      // Front/back changed — new front device may need video src loaded; back pauses.
+      refreshMedia();
+      // Reset carousel index so fallback restarts at frame 0 on the new front.
+      i = 0;
+      dots.forEach((d, idx) => d.classList.toggle('on', idx === 0));
+      document.querySelectorAll('.m-img.on').forEach(img => img.classList.remove('on'));
+      const front = document.querySelector('.device.front');
+      front?.querySelector('.m-img')?.classList.add('on');
+    });
+
+    // ---- Color theme (light / dark / system) -------------------------------
+    const applyMode = (m) => {
+      body.setAttribute('data-mode', m);
+      switchBtns.forEach(b => b.setAttribute('aria-pressed', b.dataset.mode === m ? 'true' : 'false'));
+      try { localStorage.setItem('wb-mode', m); } catch (_) {}
+      refreshMedia();
+    };
+    applyMode(localStorage.getItem('wb-mode') || 'system');
+    switchBtns.forEach(b => b.addEventListener('click', () => applyMode(b.dataset.mode)));
+    matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+      if (body.dataset.mode === 'system') refreshMedia();
+    });
+
+    probeVideosAndActivate();
+  </script>
 </body>
 </html>
