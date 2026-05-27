@@ -280,6 +280,53 @@
   @media (min-width: 720px) {
     .hero { grid-template-columns: 1.05fr 1fr; justify-items: start; }
   }
+
+  /* ---------- Responsive device showcase ----------
+     Phone viewport: hide iPad, center the iPhone.
+     Tablet viewport: hide iPhone, re-anchor stage to iPad-landscape shape.
+     Desktop (≥1200px): show both, iPad bleeds right behind iPhone. */
+  @media (max-width: 1199px) {
+    /* Disable the iPad-front layout shift — only one device shown. */
+    .hero.is-ipad-front .hero-text { transform: none; opacity: 1; pointer-events: auto; }
+    .hero.is-ipad-front .device-area { transform: none; }
+    /* No swap target = no swap affordance. */
+    .device { cursor: default; }
+    .device.back {
+      filter: none;
+      box-shadow: 0 30px 60px -25px rgba(0,0,0,0.35), 0 1px 0 rgba(255,255,255,0.04) inset;
+    }
+  }
+
+  /* Phone — iPhone only, centered */
+  @media (max-width: 767px) {
+    .hero { grid-template-columns: 1fr; }
+    .device-area { align-items: center; width: 100%; }
+    .device.ipad { display: none; }
+    .device-stage {
+      width: clamp(220px, 70vw, 320px);
+      margin: 0 auto;
+    }
+    .device.iphone { left: 0; }
+  }
+
+  /* Tablet — iPad only, scaled to fit, centered */
+  @media (min-width: 768px) and (max-width: 1199px) {
+    .hero { grid-template-columns: 1fr; }
+    .device-area { align-items: center; width: 100%; }
+    .device.iphone { display: none; }
+    .device-stage {
+      width: min(78vw, 820px);
+      aspect-ratio: 1.306;
+      margin: 0 auto;
+    }
+    .device.ipad {
+      width: 100%;
+      height: 100%;
+      left: 0;
+      top: 0;
+      transform: none;
+    }
+  }
 </style>
 </head>
 <body data-mode="light">
